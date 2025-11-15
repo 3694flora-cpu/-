@@ -1,0 +1,200 @@
+body {
+    font-family: Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 30px;
+    background-color: #f4f4f9;
+    color: #333;
+}
+
+h1 {
+    color: #4a4a4a;
+}
+
+/* --- 頂部資訊板 --- */
+#timer-board {
+    margin-bottom: 15px;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: #007bff;
+}
+
+.time-low {
+    color: #dc3545;
+}
+
+#high-score-board {
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #ffc107;
+}
+
+#score-board {
+    margin-bottom: 20px;
+    font-size: 1.1em;
+}
+
+#reset-button {
+    padding: 10px 20px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #f0ad4e;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    transition: background-color 0.3s;
+}
+
+#reset-button:hover {
+    background-color: #ec971f;
+}
+
+/* 多個槽位容器 */
+#slots-container {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    width: 90%;
+    max-width: 800px;
+    margin: 30px 0;
+    min-height: 100px;
+}
+
+/* 電池容器樣式 - 使用 flex 確保兩個電池並排且有間距 */
+#battery-container {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    width: 650px;
+    margin: 30px 0;
+    min-height: 100px;
+}
+
+
+/* --- 電池槽樣式 --- */
+.slot-container {
+    display: flex;
+    align-items: center;
+    border: 3px dashed #aaa;
+    border-radius: 10px;
+    width: 300px;
+    height: 80px;
+    background-color: #e0e0e0;
+    padding: 5px;
+}
+
+/* 已完成槽位的樣式 (關鍵修正，解決視覺不匹配!) */
+.slot-filled {
+    border: none; /* 移除虛線邊框 */
+    background-color: transparent; /* 移除槽位的灰色背景 */
+}
+
+/* 確保槽位的極性端和中間文字在填滿後被隱藏 */
+.slot-filled .slot-body,
+.slot-filled .slot-end {
+    display: none;
+}
+
+.slot-end {
+    width: 25px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 20px;
+    font-weight: bold;
+    color: white;
+}
+
+.positive-end {
+    background-color: #d9534f; /* 紅色 */
+}
+
+.negative-end {
+    background-color: #5bc0de; /* 藍色 */
+}
+
+.slot-body {
+    flex-grow: 1;
+    text-align: center;
+    color: #666;
+    font-style: italic;
+    font-size: 0.9em;
+}
+
+/* --- 電池樣式 (可拖曳物) --- */
+.battery {
+    display: flex;
+    align-items: center;
+    width: 250px;
+    height: 80px;
+    border: 2px solid #333;
+    border-radius: 8px;
+    background-color: #fff;
+    cursor: grab;
+    transition: box-shadow 0.2s;
+}
+
+/* 處理被拖曳時的狀態 */
+.dragging {
+    position: absolute !important;
+    z-index: 1000;
+    opacity: 0.8;
+}
+
+.battery:hover {
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+}
+
+.battery-cap {
+    width: 15px;
+    height: 100%;
+}
+
+/* 1. 正常電池 (+ [標籤] -) 的樣式 */
+.positive-cap {
+    background-color: #d9534f;
+    /* 正常電池：正極在左，圓角在左 */
+    border-radius: 5px 0 0 5px;
+}
+
+.negative-cap {
+    background-color: #5bc0de;
+    /* 正常電池：負極在右，圓角在右 */
+    border-radius: 0 5px 5px 0;
+}
+
+/* 2. 反轉電池 (- [標籤] +) 的樣式 (覆蓋圓角) */
+.battery-reversed .positive-cap {
+    /* 反轉後，正極在右側，圓角要在右側 */
+    border-radius: 0 5px 5px 0;
+}
+
+.battery-reversed .negative-cap {
+    /* 反轉後，負極在左側，圓角要在左側 */
+    border-radius: 5px 0 0 5px;
+}
+
+.battery-label {
+    flex-grow: 1;
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+}
+
+/* --- 訊息區 --- */
+#message-area {
+    margin-top: 20px;
+    font-size: 1.2em;
+    min-height: 30px;
+    font-weight: bold;
+    text-align: center;
+}
+
+.instruction {
+    color: #555;
+    margin-top: 10px;
+}
