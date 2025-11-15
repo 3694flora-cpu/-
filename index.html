@@ -3,38 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>�q���w�ˬD��</title>
+    <title>電池安裝挑戰</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
-    <h1>?? �q���w�ˬD�� ??</h1>
+    <h1>?? 電池安裝挑戰 ??</h1>
     
     <div id="timer-board">
-        �Ѿl�ɶ��G<span id="time-remaining">60</span> ��
+        剩餘時間：<span id="time-remaining">60</span> 秒
     </div>
 
     <div id="high-score-board">
-        �̰��o���G<span id="high-score">0</span>
+        最高得分：<span id="high-score">0</span>
     </div>
 
     <div id="score-board">
-        ���\�w�˼ơG<span id="correct-count">0</span>
+        成功安裝數：<span id="correct-count">0</span>
     </div>
 
-    <button id="reset-button">���s�}�l�C��</button>
+    <button id="reset-button">重新開始遊戲</button>
 
     <div id="battery-slot" class="slot-container" data-slot-left-polarity="+">
         <div class="slot-end slot-left-end positive-end">+</div>
-        <div class="slot-body">AA �q����</div>
+        <div class="slot-body">AA 電池槽</div>
         <div class="slot-end slot-right-end negative-end">-</div>
     </div>
 
-    <p class="instruction">�бN�q���즲��q���Ѥ��A�`�N�N�q�������ʻP�Ѧ����I</p>
+    <p class="instruction">請將電池拖曳到電池槽中，注意將電池的極性與槽位對齊！</p>
 
     <div id="battery-item" class="battery" draggable="true" data-polarity-up="+">
         <div class="battery-cap positive-cap"></div>
-        <div class="battery-label">AA �q��</div>
+        <div class="battery-label">AA 電池</div>
         <div class="battery-cap negative-cap"></div>
     </div>
 
