@@ -2,8 +2,11 @@
 const INITIAL_TIME = 60; 
 const BONUS_SCORE_INTERVAL = 5; 
 const HIGH_SCORE_KEY = 'batteryGameHighScore'; 
-const SLOT_UPGRADE_THRESHOLD = 5; // 完成 5 個電池後升級到 2 個槽位
+const SLOT_UPGRADE_THRESHOLD = 5; 
 const BONUS_TIME = 5; 
+
+// --- 模式開關 (預設普通模式) ---
+let isHardMode = false; 
 
 let correctCount = 0;
 let draggedItem = null;
@@ -13,7 +16,7 @@ let isGameActive = false;
 let lastBonusCount = 0; 
 let currentHighScore = 0;
 let slotsFilledCount = 0; 
-let currentNumSlots = 1; // 預設從 1 個槽位開始
+let currentNumSlots = 1; 
 
 // 模擬拖曳專用變數
 let isDragging = false;
@@ -28,6 +31,7 @@ const timeRemainingSpan = document.getElementById('time-remaining');
 const messageArea = document.getElementById('message-area');
 const resetButton = document.getElementById('reset-button');
 const highScoreSpan = document.getElementById('high-score');
+const modeToggleButton = document.getElementById('mode-toggle-button'); 
 
 
 // --- 輔助函數 ---
@@ -81,7 +85,6 @@ function handleGameOver(reason) {
     document.removeEventListener('mousemove', handleMouseMove);
     document.removeEventListener('mouseup', handleMouseUp);
     
-    // 移除電池的拖曳監聽器
     if (batteryContainer) {
         batteryContainer.querySelectorAll('.battery').forEach(b => {
             b.removeEventListener('mousedown', handleMouseDown);
@@ -89,11 +92,13 @@ function handleGameOver(reason) {
         });
     }
 
-    const isNewRecord = saveHighScore();
-    let message = `✅ 時間到！您成功安裝了 ${correctCount} 個電池。挑戰結束！`;
-    if (isNewRecord) message += ` 🏆 恭喜您打破紀錄！新紀錄是 ${currentHighScore}！`;
-    else if (currentHighScore > 0) message += ` 您的最高紀錄是 ${currentHighScore}。`;
-    showMessage(message, true);
+    if (reason !== 'mode_switch') {
+        const isNewRecord = saveHighScore();
+        let message = `✅ 時間到！您成功安裝了 ${correctCount} 個電池。挑戰結束！`;
+        if (isNewRecord) message += ` 🏆 恭喜您打破紀錄！新紀錄是 ${currentHighScore}！`;
+        else if (currentHighScore > 0) message += ` 您的最高紀錄是 ${currentHighScore}。`;
+        showMessage(message, true);
+    }
 }
 
 function checkForBonusTime() {
@@ -144,7 +149,6 @@ function handleMouseUp(e) {
     checkPlacement(e.clientX, e.clientY);
 }
 
-// 輔助函數：將拖曳失敗的電池送回容器內
 function resetBatteryPosition(batteryElement, message, isSuccess = false) {
     setTimeout(() => {
         batteryElement.classList.remove('dragging');
@@ -156,33 +160,27 @@ function resetBatteryPosition(batteryElement, message, isSuccess = false) {
     showMessage(message, isSuccess);
 }
 
-// 輔助函數：將電池固定在目標槽位上
 function anchorBatteryToSlot(batteryElement, targetSlot) {
     batteryElement.classList.remove('dragging');
     batteryElement.style.left = '';
     batteryElement.style.top = '';
     
-    // 2. 將電池從原容器移除，移動到槽位容器中
     if (batteryContainer && batteryContainer.contains(batteryElement)) {
         batteryContainer.removeChild(batteryElement);
     }
     targetSlot.appendChild(batteryElement);
 
-    // 3. 調整樣式 (與 style.css 的 .slot-filled 配合，實現視覺無縫嵌入)
     batteryElement.style.position = 'static'; 
     batteryElement.style.width = '100%'; 
     batteryElement.style.height = '100%';
     
-    // 阻止再次被拖曳
     batteryElement.removeEventListener('mousedown', handleMouseDown);
     batteryElement.style.cursor = 'default';
     
-    // 4. 標記槽位已完成
     targetSlot.classList.add('slot-filled');
 }
 
 
-// 核心邏輯：放置檢查 
 function checkPlacement(dropX, dropY) {
     if (!draggedItem) return;
 
@@ -213,7 +211,6 @@ function checkPlacement(dropX, dropY) {
     const isCorrectlyInstalled = (batteryLeftPolarity === requiredLeftPolarity);
 
     if (isCorrectlyInstalled) {
-        // --- 成功邏輯 ---
         correctCount++;
         if (correctCountSpan) correctCountSpan.textContent = correctCount; 
         
@@ -228,8 +225,9 @@ function checkPlacement(dropX, dropY) {
              
              if (currentNumSlots === 1 && correctCount >= SLOT_UPGRADE_THRESHOLD) {
                  currentNumSlots = 2; 
-                 showMessage(`🎉 恭喜！您已成功安裝 ${SLOT_UPGRADE_THRESHOLD} 個電池！難度升級到 2 個槽位！準備下一輪...`, true);
+                 showMessage(`🎉 恭喜！難度升級到 2 個槽位！準備下一輪...`, true);
              } else {
+                 currentNumSlots = 2; // 雙槽位模式後保持 2 槽位
                  showMessage(`🎉 成功完成本輪 ${currentNumSlots} 個槽位！準備下一輪...`, true);
              }
              
@@ -242,13 +240,12 @@ function checkPlacement(dropX, dropY) {
         }
 
     } else {
-        // --- 失敗邏輯 ---
         resetBatteryPosition(batteryElement, '❌ 選擇的電池方向錯誤，請選擇正確方向的電池！');
     }
 }
 
 
-// 輔助函數：創建電池 DOM 元素
+// 輔助函數：創建電池 DOM 元素 (包含視覺結構)
 function createBatteryElement(isReversed) {
     const newBattery = document.createElement('div');
     newBattery.className = 'battery';
@@ -256,21 +253,36 @@ function createBatteryElement(isReversed) {
         newBattery.classList.add('battery-reversed');
     }
     
+    // 正極 Cap 容器
     const positiveCap = document.createElement('div');
     positiveCap.className = 'battery-cap positive-cap';
+    
+    // 正極視覺 Wrapper (用於顏色和符號)
+    const positiveCapVisual = document.createElement('div');
+    positiveCapVisual.className = 'battery-cap-visual-wrapper';
+    positiveCapVisual.dataset.polarity = '+'; // 添加數據屬性用於 CSS content
+    positiveCap.appendChild(positiveCapVisual);
+
     const label = document.createElement('div');
     label.className = 'battery-label';
     label.textContent = 'AA 電池';
+
+    // 負極 Cap 容器
     const negativeCap = document.createElement('div');
     negativeCap.className = 'battery-cap negative-cap';
+    
+    // 負極視覺 Wrapper (用於顏色和符號)
+    const negativeCapVisual = document.createElement('div');
+    negativeCapVisual.className = 'battery-cap-visual-wrapper';
+    negativeCapVisual.dataset.polarity = '-'; // 添加數據屬性用於 CSS content
+    negativeCap.appendChild(negativeCapVisual);
+
 
     if (isReversed) {
-        // 反轉朝向: [-] [標籤] [+]
         newBattery.appendChild(negativeCap);
         newBattery.appendChild(label);
         newBattery.appendChild(positiveCap);
     } else {
-        // 正常朝向: [+] [標籤] [-]
         newBattery.appendChild(positiveCap);
         newBattery.appendChild(label);
         newBattery.appendChild(negativeCap);
@@ -279,15 +291,13 @@ function createBatteryElement(isReversed) {
     return newBattery;
 }
 
-// 輔助函數：創建電池槽 DOM 元素 (可接受強制極性)
+// 輔助函數：創建電池槽 DOM 元素 (包含視覺結構)
 function createSlotElement(slotIndex, forcedLeftPolarity = null) {
     let leftPolarity;
     
     if (forcedLeftPolarity) {
-        // 使用傳入的固定極性
         leftPolarity = forcedLeftPolarity;
     } else {
-        // 使用原有的隨機極性
         const isLeftPositive = Math.random() < 0.5; 
         leftPolarity = isLeftPositive ? '+' : '-';
     }
@@ -300,16 +310,34 @@ function createSlotElement(slotIndex, forcedLeftPolarity = null) {
     slot.id = `slot-${slotIndex}`;
 
     const slotLeftEnd = document.createElement('div');
-    slotLeftEnd.className = `slot-end slot-left-end ${leftPolarity === '+' ? 'positive-end' : 'negative-end'}`;
-    slotLeftEnd.textContent = leftPolarity;
-
+    const slotRightEnd = document.createElement('div');
     const slotBody = document.createElement('div');
+
+    // 端點容器
+    slotLeftEnd.className = 'slot-end';
+    slotRightEnd.className = 'slot-end';
+
+    // 實際視覺元素 (用於顏色/彈簧)
+    const slotLeftEndVisual = document.createElement('div');
+    slotLeftEndVisual.className = `slot-end-element-wrapper ${leftPolarity === '+' ? 'positive-end-visual' : 'negative-end-visual'}`;
+    slotLeftEnd.appendChild(slotLeftEndVisual);
+
+    const slotRightEndVisual = document.createElement('div');
+    slotRightEndVisual.className = `slot-end-element-wrapper ${rightPolarity === '+' ? 'positive-end-visual' : 'negative-end-visual'}`;
+    slotRightEnd.appendChild(slotRightEndVisual);
+    
+    // --- 模式視覺邏輯 ---
+    if (isHardMode) {
+        slotLeftEnd.classList.add('hard-mode');
+        slotRightEnd.classList.add('hard-mode');
+    } else {
+        slotLeftEnd.classList.add('normal-mode');
+        slotRightEnd.classList.add('normal-mode');
+    }
+    // --- 視覺邏輯結束 ---
+
     slotBody.className = 'slot-body';
     slotBody.textContent = `槽位 ${slotIndex + 1} / ${currentNumSlots}`; 
-
-    const slotRightEnd = document.createElement('div');
-    slotRightEnd.className = `slot-end slot-right-end ${rightPolarity === '+' ? 'positive-end' : 'negative-end'}`;
-    slotRightEnd.textContent = rightPolarity;
 
     slot.appendChild(slotLeftEnd);
     slot.appendChild(slotBody);
@@ -319,7 +347,7 @@ function createSlotElement(slotIndex, forcedLeftPolarity = null) {
 }
 
 
-// 遊戲重置/生成下一輪邏輯 (雙槽位固定極性)
+// 遊戲重置/生成下一輪邏輯
 function resetForNextRound() {
     
     // 1. 清除舊槽位並生成新槽位
@@ -327,19 +355,16 @@ function resetForNextRound() {
         slotsContainer.innerHTML = '';
         
         if (currentNumSlots === 2) { 
-            // FIXED DUAL SLOT MODE: 確保一個 '+ -' 和一個 '- +'
             const requiredPolarities = ['+', '-'];
-            // 隨機排列順序，確保 Slot 1/2 的位置是隨機的
             requiredPolarities.sort(() => Math.random() - 0.5); 
             
-            const slot1 = createSlotElement(0, requiredPolarities[0]); // 左側極性為 '+' 或 '-'
-            const slot2 = createSlotElement(1, requiredPolarities[1]); // 左側極性為剩下的那一個
+            const slot1 = createSlotElement(0, requiredPolarities[0]); 
+            const slot2 = createSlotElement(1, requiredPolarities[1]); 
             
             slotsContainer.appendChild(slot1);
             slotsContainer.appendChild(slot2);
 
         } else {
-            // 單槽位模式 (仍為隨機)
             for (let i = 0; i < currentNumSlots; i++) {
                 slotsContainer.appendChild(createSlotElement(i)); 
             }
@@ -355,7 +380,6 @@ function resetForNextRound() {
         const battery1 = createBatteryElement(false); // 正常朝向 (+ -)
         const battery2 = createBatteryElement(true);  // 反轉朝向 (- +)
     
-        // 固定順序添加，確保 + - 在左，- + 在右
         batteryContainer.appendChild(battery1);
         initializeBatteryEvents(battery1);
         
@@ -363,11 +387,28 @@ function resetForNextRound() {
         initializeBatteryEvents(battery2);
     }
     
-    showMessage(`新的挑戰開始！請填滿所有 ${currentNumSlots} 個槽位。`, true);
+    let modeText = isHardMode ? '【困難模式】' : '【普通模式】';
+    let modeInstruction = isHardMode ? '請觀察電池凸起/平坦外觀與槽位彈簧/平坦結構！' : '請觀察電池與槽位的顏色提示！';
+    showMessage(`${modeText} 新的挑戰開始！${modeInstruction}`, true);
 }
 
 
-// 核心重置函數 (用於遊戲開始或重新開始按鈕)
+// --- 模式切換函數 ---
+function updateModeButtonText() {
+    if (modeToggleButton) {
+        modeToggleButton.textContent = isHardMode ? '切換至普通模式 (槽位有顏色)' : '切換至困難模式 (槽位現實外觀)';
+    }
+}
+
+function toggleMode() {
+    isHardMode = !isHardMode;
+    updateModeButtonText(); 
+    handleGameOver('mode_switch'); 
+    resetGame();
+}
+
+
+// 核心重置函數 
 function resetGame() {
     loadHighScore(); 
     isGameActive = true; 
@@ -379,7 +420,11 @@ function resetGame() {
     
     resetForNextRound(); 
     startTimer(); 
-    showMessage(`遊戲開始！請在 ${INITIAL_TIME} 秒內盡可能多地填滿 ${currentNumSlots} 個槽位。`, true);
+    
+    updateModeButtonText(); 
+    
+    let modeInstruction = isHardMode ? '請觀察電池凸起/平坦外觀與槽位彈簧/平坦結構！' : '請觀察電池與槽位的顏色提示！';
+    showMessage(`遊戲開始！${modeInstruction}`, true);
 }
 
 
@@ -394,4 +439,5 @@ function initializeBatteryEvents(batteryElement) {
 document.addEventListener('DOMContentLoaded', () => {
     resetGame(); 
     if (resetButton) resetButton.addEventListener('click', resetGame);
+    if (modeToggleButton) modeToggleButton.addEventListener('click', toggleMode); 
 });
